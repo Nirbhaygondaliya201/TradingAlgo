@@ -1,0 +1,183 @@
+# =============================================================================
+# default_config.yaml — XAU/USD MT5 EA Python Research Environment
+# =============================================================================
+# All default parameter values and valid ranges for every configurable
+# parameter in the EA. Values here match the MQL5 EA defaults exactly.
+#
+# Design reference: §Configuration Management, all module specifications
+# Requirements: 14.1, 14.2, 14.3, 16.1
+#
+# USAGE:
+#   from python_research.config.config import Config
+#   cfg = Config.from_yaml("config/default_config.yaml")
+#
+# VALID RANGES are documented inline. The Python Config loader validates
+# that every value falls within its range before use.
+# =============================================================================
+
+# --- EA Identity -----------------------------------------------------------
+ea:
+  magic_number: 20260901          # Must be unique per EA instance on the account
+  version: "1.0.0"
+  state_file_version: 1
+
+# --- Symbol Properties (used in Python backtesting; loaded from broker live) --
+# In backtesting these values substitute for MT5 SymbolInfoDouble/Int calls.
+# Requirement 14.4
+symbol_properties:
+  symbol: "XAUUSD"
+  point: 0.01                     # SYMBOL_POINT for XAUUSD on most brokers
+  lot_step: 0.01                  # SYMBOL_VOLUME_STEP
+  min_lot: 0.01                   # SYMBOL_VOLUME_MIN
+  max_lot: 100.0                  # SYMBOL_VOLUME_MAX
+  contract_size: 100.0            # SYMBOL_TRADE_CONTRACT_SIZE (100 troy oz per lot)
+  stop_level_points: 0            # SYMBOL_TRADE_STOPS_LEVEL (0 = broker allows any distance)
+  freeze_level_points: 0          # SYMBOL_TRADE_FREEZE_LEVEL
+  tick_size: 0.01                 # SYMBOL_TRADE_TICK_SIZE
+  tick_value: 1.0                 # SYMBOL_TRADE_TICK_VALUE (USD per tick per lot)
+  digits: 2                       # SYMBOL_DIGITS
+  margin_initial: 0.0             # SYMBOL_MARGIN_INITIAL (set by broker at runtime)
+
+# --- Market Structure Settings ---------------------------------------------
+# Requirements: 1.1, 1.2, 3.1
+market_structure:
+  swing_side_candles: 2           # Candles required on each side of an extremum
+                                  # valid range: 1–5
+  regime_swing_count: 4           # Number of alternating swings used for regime detection
+                                  # valid range: 2–10
+  ranging_mode_enabled: false     # If true, allow entries when 4H regime = Ranging
+
+# --- Liquidity Detector Settings -------------------------------------------
+# Requirements: 2.1, 2.5
+liquidity:
+  pool_atr_tolerance: 0.5         # Pool equality tolerance as × ATR
+                                  # valid range: 0.1–2.0
+  max_active_pools: 20            # Maximum active pools per timeframe per direction
+                                  # valid range: 5–50
+
+# --- ATR Volatility Engine Settings ----------------------------------------
+# Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6
+atr:
+  atr_period: 14                  # ATR lookback period in 1H candles
+                                  # valid range: 5–50
+  baseline_window_bars: 720       # 30-day baseline window (30d × 24h)
+  atr_min_multiplier: 0.5         # Block if current ATR < baseline × this
+                                  # valid range: 0.1–1.0
+  atr_max_multiplier: 2.5         # Block if current ATR > baseline × this
+                                  # valid range: 1.5–5.0
+  atr_sl_multiplier: 1.5          # Min SL distance = ATR × this (floored at broker stop level)
+                                  # valid range: 0.5–5.0
+  unavailable_timeout_minutes: 5  # Block entries after this many minutes without ATR data
+                                  # valid range: 1–60
+
+# --- Momentum Engine Settings ----------------------------------------------
+# Requirements: 4.1, 4.2, 4.3
+momentum:
+  lookback: 10                    # Prior candles used for high-low range
+                                  # valid range: 2–50
+
+# --- Session Filter Settings -----------------------------------------------
+# Requirements: 6.1, 6.4, 6.5, 6.6
+session:
+  london:
+    enabled: true
+    start_utc: "07:00"
+    end_utc:   "12:00"
+    utc_offset_hours: 0           # DST offset adjustment; valid range: -12–+14
+  new_york:
+    enabled: true
+    start_utc: "13:00"
+    end_utc:   "17:00"
+    utc_offset_hours: 0
+  london_ny_overlap:
+    enabled: true
+    start_utc: "13:00"
+    end_utc:   "15:00"
+    utc_offset_hours: 0
+
+# --- Spread Filter Settings ------------------------------------------------
+# Requirements: 7.2
+spread:
+  max_spread_points: 30           # Maximum allowed spread in points
+                                  # valid range: 10–200
+
+# --- News Filter Settings --------------------------------------------------
+# Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.7
+news:
+  news_protection_mode: "BLOCK"   # BLOCK | WARN | DISABLED
+  min_impact_level: "High"        # Low | Medium | High
+  pre_event_minutes: 30           # Block window before event
+                                  # valid range: 0–120
+  post_event_minutes: 15          # Block window after event
+                                  # valid range: 0–120
+  max_list_age_hours: 24          # Hours before event list considered stale
+                                  # valid range: 1–168
+  stale_fallback: "BLOCK"         # BLOCK | ALLOW — applied when list is stale
+  news_events_file: "config/news_events.csv"
+
+# --- Risk Manager Settings -------------------------------------------------
+# Requirements: 9.1, 9.2, 9.3, 9.4, 9.6, 9.7
+risk:
+  risk_per_trade_pct: 1.0         # % of floating equity risked per trade
+                                  # valid range: 0.1–5.0
+  max_lot_size: 0.5               # Hard cap on position size in lots
+                                  # valid range: 0.01–10.0
+  max_open_trades: 2              # Maximum simultaneously open trades
+                                  # valid range: 1–10
+  daily_max_drawdown_pct: 5.0     # Intraday drawdown limit (% of day-open equity)
+                                  # valid range: 1.0–20.0
+  total_max_drawdown_pct: 15.0    # Total drawdown circuit breaker (% of OnInit equity)
+                                  # valid range: 5.0–50.0
+  min_rr: 1.5                     # Minimum required risk/reward ratio
+                                  # valid range: 1.0–10.0
+  min_free_margin_pct: 150.0      # Minimum free margin as % of required margin
+                                  # valid range: 110.0–500.0
+
+# --- Consecutive Loss / Cooldown -------------------------------------------
+# Requirements: 17.6
+consecutive_loss:
+  max_consecutive_losses: 5       # Triggers cooldown when reached
+                                  # valid range: 2–20
+  cooldown_hours: 24              # Duration of trading pause after max losses
+                                  # valid range: 1–168
+
+# --- Order Execution Settings ----------------------------------------------
+# Requirements: 10.3, 10.12, 10.13, 10.14
+execution:
+  max_retries: 3                  # Non-fatal error retries
+                                  # valid range: 1–10
+  retry_delay_ms: 500             # Delay between retries in milliseconds
+                                  # valid range: 100–5000
+  max_signal_age_seconds: 0       # Max age of entry price before re-reading Ask/Bid
+                                  # 0 = always re-read; valid range: 0–60
+  max_freeze_skips: 5             # Force-close after this many consecutive freeze-level skips
+                                  # valid range: 1–20
+
+# --- State Manager Settings ------------------------------------------------
+# Requirements: 11.4, 19.1
+state:
+  state_file_path: "xauusd_ea_state.txt"
+  safe_mode_flag_filename: "xauusd_ea_safemode.flag"
+
+# --- Logger Settings -------------------------------------------------------
+# Requirements: 12.5
+logger:
+  min_log_level: "INFO"           # DEBUG | INFO | WARN | ERROR | CRITICAL
+
+# --- Python Backtest / Slippage Model --------------------------------------
+# Requirements: 20.1, 20.2, 20.3, 20.7 (BLOCKER-5 resolution)
+backtest:
+  # MODE A: Fixed adverse slippage (deterministic)
+  slippage_mode: "MODE_A"         # MODE_A | MODE_B
+  slippage_fixed_points: 2        # MODE A: fixed slippage in points (adverse)
+  # MODE B: Variable half-normal slippage
+  slippage_mean_points: 2         # MODE B: mean of half-normal distribution
+  slippage_std_dev_points: 3      # MODE B: std dev of half-normal distribution
+  slippage_random_seed: 42        # Fixed seed for reproducibility (MODE B)
+  commission_per_lot: 7.0         # Round-turn commission in account currency per lot
+  # Result sets produced on every run
+  # Base        = MODE_A, slippage=0, commission=0
+  # Conservative = MODE_A, slippage=slippage_fixed_points, commission=commission_per_lot
+  # Stress       = MODE_B, commission=commission_per_lot × 1.5
+  flag_drawdown_threshold_pct: 20.0  # Flag parameter sets exceeding this max DD
+                                     # valid range: 5.0–50.0
